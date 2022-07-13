@@ -6,8 +6,10 @@ export default function HashingForm(){
     const [algorithms] = useState(['sha1','sha256','sha384','sha512']);
     let [text_input, setTextInput] =useState('');
     let [file_input, setFileInput] = useState('');
-    let [algorithm, setAlgorithm] = useState('sha1');
+    let [algorithm, setAlgorithm] = useState('sha256');
     let [output,setOutput] = useState('');
+
+    const [showMessage, setShowMessage] = useState(false);
 
     //For handling text input
     const handleTextInput = async (e) => {
@@ -34,6 +36,7 @@ export default function HashingForm(){
         setTextInput(value);
 
     }
+
     //For handling file input
     const handleFileInput = (e) => {
         // Initializing the file reader
@@ -60,11 +63,11 @@ export default function HashingForm(){
 
             // Setting the content of the file as file input
             setFileInput(fr.result);
-    }
+            setShowMessage(true);
+        }
 
-    // Reading the file.
-    fr.readAsText(e.target.files[0]);
-
+        // Reading the file.
+        fr.readAsText(e.target.files[0]);
     }
     //For handling algorithm change
     const handleAlgorithmChange = async (e) => {
@@ -115,25 +118,102 @@ export default function HashingForm(){
 
     }
 
+    const handleFileDragDrop = (e) => {
+        console.log('Fichero(s) arrastrados');
+
+        // Evitar el comportamiendo por defecto (Evitar que el fichero se abra/ejecute)
+        e.preventDefault();
+
+        if (e.dataTransfer.files) {
+            // Usar la interfaz DataTransferItemList para acceder a el/los archivos)
+            for (var i = 0; i < e.dataTransfer.files.length; i++) {
+                       
+                var file = e.dataTransfer.files[i];
+                console.log('... file[' + i + '].name = ' + file.name);
+                
+                const fr = new FileReader();
+                fr.readAsText(e.dataTransfer.files[i]);
+
+                fr.onload = async () => {
+
+                    let result = '';
+                    result = await sha256(fr.result);
+                    // Setting the hashed text as the output
+                    setOutput(result);
+                    // Setting the content of the file as file input
+                    setFileInput(fr.result);
+                }
+                setShowMessage(true);
+                
+            
+            }
+        } else {
+            // Usar la interfaz DataTransfer para acceder a el/los archivos
+            for (var i = 0; i < e.dataTransfer.files.length; i++) {
+            console.log('... file[' + i + '].name = ' + e.dataTransfer.files[i].name);
+            }
+        }
+
+        // Pasar el evento a removeDragData para limpiar
+        //removeDragData(e)
+        
+    }
+
+    const handleFileDragOver = (e) => {
+        console.log('File(s) in drop zone');
+
+        // Prevent default behavior (Prevent file from being opened)
+        e.preventDefault();
+    }
+
+    const handleButton = (e) => {
+        // Solicitud GET (Request).
+        fetch('https://api.github.com/users/manishmshiva')
+        // Exito
+        .then(response => response.json())  // convertir a json
+        .then(json => console.log(json))    //imprimir los datos en la consola
+        .catch(err => console.log('Solicitud fallida', err)); // Capturar errores
+    }
+    
+    const handleButtonSellar = (e) => {
+        // datos mandados con la solicutud POST
+        let _datos = {
+            id: "7",
+            hash: "72d3d58cf56fcf6da15ff85496acd10a590b094870d5f2460233e65dde7ba286"
+        }
+        
+        fetch('https://62cdce4f066bd2b6992c8fda.mockapi.io/sellar', {
+            method: "POST",
+            body: JSON.stringify(_datos),
+            headers: {"Content-type": "application/json; charset=UTF-8"}
+        })
+        .then(response => response.json()) 
+        .then(json => console.log(json))
+        .catch(err => console.log(err));
+    }
+
     return (
         <div className='hashing-container'>
             <div className='hashing-content'>
                
                 <div className="hashing-form">
-                    <h4 className="hashing-form-heading">Input</h4>
+                    <h4 className="hashing-form-heading">Sello de Tiempo</h4>
                     <form>
-                        <div className="form-group">
+                        {/* <div className="form-group">
                             <label htmlFor="text-input">Text</label>
                             <input type="text" className="form-control" id="text-input" placeholder='Write some text' value={text_input} onChange={handleTextInput} />
+                        </div> */}
+                        <div className="file-drag-drop" onDrop={handleFileDragDrop} onDragOver={handleFileDragOver}>
+                            <p>Arrastra y suelta el documento a esta zona ...</p>
                         </div>
                         <div className="form-group">
-                            <label htmlFor="file-input">File Input</label>
+                            <label htmlFor="file-input">Selecciona archivo</label>
                             <input type="file" className="form-control" id="file-input" onChange={handleFileInput} />
                         </div>
                     </form>
                 </div>
            
-            <div className="hashing-algorithms">
+            {/* <div className="hashing-algorithms">
                 <h4 className="hashing-algorithms-heading">Algorithms</h4>
                 <div className="hashing-algorithms-list">
                     {
@@ -150,16 +230,24 @@ export default function HashingForm(){
                         })
                     }
                 </div>
-            </div>
-            
-            <div className="hashed-output">
-                <h4 className="hashed-algorithm-heading">Output</h4>
-                <div className="hashed-algorithm-container">
-                    <p className="hashed-algorithm-text">
-                        {output}
-                    </p>
+            </div> */}
+
+                {showMessage &&
+                <div className="hashed-output">
+                    <h4 className="hashed-algorithm-heading">Hash del archivo</h4>
+                    <div className="hashed-algorithm-container">
+                        <p className="hashed-algorithm-text">
+                            {output}
+                        </p>
+                    </div>
                 </div>
-            </div>
+                }
+                {showMessage &&
+                <div className="hashed-button">              
+                    <button className="space" type="button" onClick={handleButton}>VERIFICAR</button>
+                    <button type="button" onClick={handleButtonSellar}>SELLAR</button>
+                </div>
+                }       
            
             </div>
         </div>
